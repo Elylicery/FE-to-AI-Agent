@@ -1,0 +1,27 @@
+# 1. 核心配置：忽略工作区状态（避免跨设备窗口布局冲突）
+**/.obsidian/workspace.json
+**/.obsidian/workspace-mobile.json
+**/.obsidian/workspaces.json
+
+# 2. 插件管理：忽略插件本体，仅保留插件清单
+**/.obsidian/plugins/
+!**/.obsidian/plugins/community-plugins.json
+
+# 3. 缓存与临时文件：避免无用文件污染仓库
+**/.obsidian/cache/
+.trash/
+*.log
+
+# 4. macOS 系统文件
+.DS_Store
+._*
+
+# 5. Windows 系统文件
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# 6. Linux 系统文件
+.directory
+*.swp
+*~
