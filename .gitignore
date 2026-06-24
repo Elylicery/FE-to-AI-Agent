@@ -2,6 +2,9 @@
 **/.obsidian/workspace.json
 **/.obsidian/workspace-mobile.json
 **/.obsidian/workspaces.json
+.obsidian/app.json
+.obsidian/appearance.json
+.obsidian/core-plugins.json
 
 # 2. 插件管理：忽略插件本体，仅保留插件清单
 **/.obsidian/plugins/
