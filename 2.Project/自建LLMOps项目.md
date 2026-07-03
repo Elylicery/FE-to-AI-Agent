@@ -116,3 +116,36 @@ AI应用开发各环节差异
 
 项目通过路由接收用户的发起的请求，并调用控制器特定的方法来处理，控制器接收到数据后，对数据进行校验，校验未通过则抛出错误；校验通过后将数据传递给Service/Core层进行相应的逻辑处理、数据存储和检索等操作，完成逻辑计算后得到响应数据，返回给控制器，控制器在将数据响应给用户，至此，一个最简单的流程结束。
 ![[images/Pasted image 20260629223123.png]]
+
+### 技术选型
+
+#### 数据库Postgres
+
+PostgreSQL（又称 Postgres）是一种强大、开源的关系型数据库管理系统（RDBMS）
+
+写一个批处理做windows下的启动与停止命令，会自动判断 PostgreSQL 的状态：正在运行就关闭，没运行就启动。
+
+pg-toggle.bat
+```bash
+@echo off
+chcp 65001 >nul
+title PostgreSQL 16 管理
+
+set PG_BIN=D:\softwareInstall\PostgreSQL\16\bin
+set PG_DATA=D:\softwareInstall\PostgreSQL\16\data
+
+echo 正在检测 PostgreSQL 运行状态...
+"%PG_BIN%\pg_ctl.exe" status -D "%PG_DATA%" >nul 2>&1
+
+if %errorlevel% equ 0 (
+    echo PostgreSQL 正在运行，正在关闭...
+    "%PG_BIN%\pg_ctl.exe" stop -D "%PG_DATA%"
+) else (
+    echo PostgreSQL 未运行，正在启动...
+    "%PG_BIN%\pg_ctl.exe" start -D "%PG_DATA%"
+)
+
+echo.
+pause
+
+```
