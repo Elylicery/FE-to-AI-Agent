@@ -141,3 +141,74 @@ print(chain.invoke({"query": "你好，你是?"}))
 
 ```
 #### Runnable与LCEL表达式
+
+![[images/Pasted image 20260705094056.png]]
+![[images/Pasted image 20260705094127.png]]
+
+上面Chain的写法等价下面
+```python
+chain = prompt | llm | parser
+```
+Runnable 底层的运行逻辑本质上也是将每一个组件添加到列表中，然后按照顺序执行并返回最终结果， 核心源码
+```python
+def invoke(self, input: Input, config: Optional[RunnableConfig] = None) -> Output:
+	from langchain_core.beta.runnables.context import config_with_context
+\
+	# setup callbacks and context 
+	config = config_with_context(ensure_config(config), self.steps) 
+	callback_manager = get_callback_manager_for_config(config)
+	# start the root run
+	run_manager = callback_manager.on_chain_start(
+		dumpd(self),
+		input, 
+		name=config.get("run_name") or self.get_name(), 
+		run_id=config.pop("run_id", None),
+	)
+	
+	# 调用所有步骤并逐个执行得到对应的输出，然后作为下一个的输入
+	try:
+		for i, step in enumerate(self.steps):
+			input = step.invoke(
+				input, 
+				# mark each step as a child run 
+				patch_config( config, callbacks=run_manager.get_child(f"seq:step: {i+1}")),
+			)
+	# finish the root run
+	except BaseException as e:
+		run_manager.on_chain_error(e)
+		raise
+	else:
+		run_manager.on_chain_end(input)
+		return cast(Output, input)
+
+```
+
+### 两个Runable核心类
+
+***RunnableParallel 并行运行：**
+
+RunnableParallel 是 LangChain 中封装的支持运行多个 Runnable 的类，一般用于操作 Runnable 的输 出，以匹配序列中下一个 Runnable 的输入，起到并行运行 
+Runnable 并格式化输出结构的作用。 
+
+例如 RunnableParallel 可以让我们同时执行多条 Chain，然后以字典的形式返回各个 Chain 的结果，对 比每一条链单独执行，效率会高很多
+
+```python
+chain = RunnableParallel( context=retrieval,query=RunnablePassthrough(), ) | prompt | llm | parse
+```
+
+***RunablePassthrough 传输数据**
+
+RunnablePassthrough，这个类透传上游参数输入，简单来说，就是可以获取上游的数据，并保持不变 或者新增额外的键。 通常与 RunnableParallel 一起使用，将数据分配给映射中的新键
+```python
+chain = {"query": RunnablePassthrough()} | prompt | llm | StrOutputParser()
+```
+
+### 利用回调功能调式链应用
+
+#### Callback
+![[images/Pasted image 20260705102151.png]]
+
+**CallbackHandler**：对每个应用场景比如 Agent 或 Chain 或 Tool 的纪录。 
+#### langSmith调试平台 
+
+LangSmith 是 LangChain 生态里的可观测性平台，主要解决三件事：Trace（追踪每次 LLM 调用的完整链路，包括 prompt、token 消耗、延迟、中间步骤）、Evaluate（批量跑测试集，评估 Agent 或 RAG 的输出质量）、Prompt Management（版本管理和 A/B 测试 prompt）
