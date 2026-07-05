@@ -58,7 +58,7 @@ def chat(user_input: str) -> str:
 "data": {} // 业务获取的数据
 }
 ```
-
+包含异常错误状态设计
 #### Pytest与API测试用例编写
 
 pytest：一个功能强大且易于使用的python测试框架，用fixture为测试提供预设数据和设置测试环境的功能。用`@pytest_mark_parametrize`装饰测试函数
