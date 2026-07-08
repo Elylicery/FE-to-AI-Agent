@@ -212,3 +212,87 @@ chain = {"query": RunnablePassthrough()} | prompt | llm | StrOutputParser()
 #### langSmith调试平台 
 
 LangSmith 是 LangChain 生态里的可观测性平台，主要解决三件事：Trace（追踪每次 LLM 调用的完整链路，包括 prompt、token 消耗、延迟、中间步骤）、Evaluate（批量跑测试集，评估 Agent 或 RAG 的输出质量）、Prompt Management（版本管理和 A/B 测试 prompt）
+
+## LLM实现记忆功能
+
+### 记忆功能
+
+- 核心机制：通过外部模块保存对话上下文信息，在每次请求时将历史信息作为输入传递给模型
+- 实现方法：在Prompt中预留`chat_historychat`占位符，实时保存并插入`Human/AI`对话信息
+- 流程特点：
+    - **模型本身不具备记忆能力，完全依赖用户输入产生输出**
+    - 需要额外开发存储模块（内存/数据库/本地文件）保存对话记录
+    - 每次对话时将完整历史记录插入Prompt模板
+![[images/Pasted image 20260706222533.png]]
+### 常见记忆模式
+#### 本质：保留最近“N条“消息
+
+**缓冲记忆**：全量保留
+存储所有Human/AI生成的消息，使用时将完整聊天历史传递到Prompt中
+
+**缓冲窗口记忆**：按条数截断
+设置窗口值k(如k=2)，只保留最近k次互动
+
+**令牌缓冲记忆**：按token数阶段
+用max_tokens替代固定窗口值k
+
+#### 摘要总结记忆
+对历史对话进行压缩摘要而非完整存储
+
+![[images/Pasted image 20260706223811.png]]
+
+#### 摘要缓冲混合记忆 ⭐
+> 工程上最实用的方案，长期为模糊记忆，短期为精确记忆
+
+前面用摘要、后面保留最近几轮原文，兼顾了上下文完整性和 token 控制
+![[images/Pasted image 20260706224154.png]]
+
+实现所需模块：
+    - ﻿chat_message_history：存储历史对话消息列表
+    - ﻿moving_summary_buffer 存储被移除消息的汇总字符串
+    - ﻿summary_llm：接收当前摘要、用户提问和AI回复生成新摘要的模型
+    - ﻿max_tokens：设置记忆模块存储的最大token数（本案例设为300）
+    - ﻿get_num_tokens：统计文本token数量的函数
+工作流程：
+    - 当历史消息token数超过max_tokens时触发清理
+    - 移除最旧的一组human-AI对话
+    - 将被移除的对话内容生成摘要存入moving_summary_buffer
+    - 循环执行直到token数低于阈值
+#### 向量存储库记忆
+
+> 用得少，长对话场景的解法，一般用RAG
+
+使用向量数据库存储对话片段，通过相似度检索相关记忆（实现复杂: 需要Embedding+向量数据库支持）
+
+![[images/Pasted image 20260706224357.png]]
+
+### chatMessageHistory组件
+记忆功能集成LLM应用的两个核心问题：存储的历史信息是什么？如何检索与处理历史信息
+![[images/Pasted image 20260707220037.png]]
+
+### Memory组件运行流程及不同记忆分类
+![[images/Pasted image 20260707220125.png]]![[images/Pasted image 20260707220140.png]]
+### 缓冲记忆组件
+
+**LangChain中最简单的记忆组件，采用"原进原出"机制，不对数据结构和提取算法做额外处理**
+
+* conversationBufferMemory：完整保存所有对话历史（Human和AI的交互记录）
+* ConversationBufferwindowMemory：通过`k`值控制记忆窗口大小，保留最近`2∗k`条对话
+* ConversationTokenBufferMemory：通过`max_token_limits`设置令牌数上限
+
+### 摘要记忆组件
+
+ 保存所有对话历史会占用过多存储空间，仅保留最近记忆会丢失重要历史信息。于是方案: 保留关键信息（重点记忆），移除冗余噪音（流水式信息）
+ * conversationSummaryMemory：摘要总结记忆，**将传递的历史对话记录总结成摘要进行保存**
+ * conversationSummaryBufferMemory：摘要缓冲混合记忆，**在不超过max_token_limit的限制下，保留对话历史数据，对于超过的部分，进行信息的总结与提取**
+
+### 记忆组件的持久化与第三方集成
+
+核心思路：通过外部存储实现记忆持久化，将记忆组件数据存储在文件或数据库中，使用时重新实例化
+![[images/Pasted image 20260707225059.png]]
+集成接入的第三方对话历史消息有：postsqlres、sqlite、redis、kalfa等。。。并且chatMessageHistory可以接入到Runnable可运行协议的链条 
+
+![[images/Pasted image 20260707225518.png]]
+### 内置Chain组件
+
+### RunnableWithMessageHistory
