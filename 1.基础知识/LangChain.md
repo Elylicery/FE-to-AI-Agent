@@ -349,5 +349,18 @@ chain_with_history.invoke(
 ![[images/Pasted image 20260707225518.png]]
 
 #### 3.3.4 开源智能体记忆模块解析
-## 4. Runable可运行协议
+## 4. Runable可运行协议深入
+### 4.1.  Runable配置方法
+
+**bind函数**：通过`Runnable.bind()`方法可以为Runnable组件添加默认调用参数，可以用来给 Runnable 做参数预设，让链式调用更简洁、配置更可复用。
+
+
+configurable_fields:  运行时动态修改链的参数，使用时分成两个流程：
+1. 为Runable定义哪些字段可以在链运行时动态配置
+2. 在调用invoke()时，传递对应的配置信息confugurable完成动态配置
+
+![[images/Pasted image 20260709224548.png]]
+
+configurable_alternatives：实现运行时组件替换（例如在**构建的链应用中，动态替换掉特定的模型、提示词等整个组件本身，而不是替换组件里的参数信息**）
+![[images/Pasted image 20260709225252.png]]
 
