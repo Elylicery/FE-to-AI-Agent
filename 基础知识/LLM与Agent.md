@@ -75,6 +75,158 @@ LoRA-插件式微调
 - **副驾驶（Copilot）模式**：在这种模式下，人类与AI作为合作伙伴，共同完成任务，AI提供建议并协助任务，二者互补，AI更像知识丰富的伙伴而非工具。
 - **智能体（Agent）模式**：人类设定目标并提供资源，AI独立完成大部分工作，最后人类监督和评估结果。
 
+## Prompt Engineering
+### 意义
+
+**目的**：提升AI推理质量与可控性，精细化控制模型的推理质量、行为边界和输出风格。
+比如：设计Tool Calling Prompt→统一接口规范，降低维护成本
+
+Prompt不只是改变大模型的输出内容与格式，也是驱动Agent的最重要手段。
+比如：意图识别、任务分解、外部工具调用等关键功能。
+### Prompt工程
+
+#### **推理增强技术**
+* 思维链（Chain-of-Thought）：
+	* “Let’s think step by step”
+	* 示例：数学题、逻辑推理
+* 反思机制(Self-Reflection)：模型自我评估与修正
+	* 模型自我评估输出质量
+	* 使用Critic Agent或prompt设计
+
+#### **提示模板工程**
+
+* LangChain PromptTemplate / Jinja2
+```python
+from langchain_core.prompts import PromptTemplate
+
+# 使用 Jinja2 语法，支持 if/else
+template = """
+你是一个客服助手，请根据用户问题提供帮助。
+
+用户问题: {{ query }}
+
+{% if product_info %}
+产品信息: {{ product_info }}
+请基于以上信息回答。
+{% else %}
+该产品暂无详细信息。
+{% endif %}
+
+回答:
+"""
+
+# 创建支持 Jinja2 的 PromptTemplate
+prompt = PromptTemplate.from_template(template, template_format="jinja2")
+
+# 格式化输出 (带条件)
+formatted_prompt = prompt.invoke({
+    "query": "iPhone 15 有货吗？",
+    "product_info": "iPhone 15 256GB 版本有现货，售价 6999 元。"
+})
+
+print(formatted_prompt
+```
+* 支持变量注入、条件判断
+```python
+template = """
+你是一个旅游推荐官。
+
+目的地: {{ city }}
+天数: {{ days or 3 }}
+预算等级: {{ budget_level | default('中等', true) }}
+
+请推荐一个 {{ days }} 天的行程，预算 {{ budget_level }}。
+"""
+
+prompt = PromptTemplate.from_template(template, template_format="jinja2")
+
+# 测试：只传 city，其他用默认值
+formatted = prompt.invoke({"city": "京都"})
+print(formatted.text)
+```
+* 动态Prompt生成（函数化构造）
+```python
+def create_dynamic_prompt(intent: str):
+    templates = {
+        "refund": """
+你是一名售后客服。
+用户申请退款，订单号: {{ order_id }}，原因: {{ reason }}。
+请礼貌回复并说明处理流程。
+""",
+        "support": """
+你是一名技术支持。
+用户遇到问题: {{ issue }}。
+环境: {{ environment }}。
+请提供排查建议。
+""",
+        "recommend": """
+你是一名推荐助手。
+用户偏好: {{ preference }}。
+请推荐一个 {{ preference }} 风格的产品。
+"""
+    }
+    return PromptTemplate.from_template(templates.get(intent, "请回答: {{ input }}"))
+
+# 根据用户意图动态选择模板
+user_intent = "refund"
+prompt = create_dynamic_prompt(user_intent)
+
+input_data = {
+    "order_id": "ORD123456",
+    "reason": "商品发错"
+}
+
+formatted = prompt.invoke(input_data)
+print(formatted.text)
+```
+
+* 意图识别
+```python
+# 步骤 1: 用 LLM 判断用户意图
+intent_prompt = PromptTemplate.from_template(
+    "判断用户问题的意图，仅返回一个关键词: refund, support, recommend, general\n"
+    "用户问题: {{ query }}\n"
+    "意图: "
+)
+
+llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+
+# 完整链：用户输入 -> 判断意图 -> 动态生成 Prompt -> 最终回答
+def build_smart_agent_chain():
+    # 意图识别链
+    intent_chain = intent_prompt | llm | StrOutputParser()
+
+    def route_prompt(data):
+        query = data["query"]
+        intent = data["intent"]
+
+        # 动态选择并格式化 Prompt
+        dynamic_prompt = create_dynamic_prompt(intent)
+        return dynamic_prompt.invoke({"input": query, **data})
+
+    # 主链：先识别意图，再生成回答
+    full_chain = (
+        {"query": lambda x: x["query"]}
+        | intent_chain.assign(intent=lambda x: x)  # 保留原始输入
+        | route_prompt
+        | llm
+        | StrOutputParser()
+    )
+```
+#### 外部工具调用提示设计：
+
+（Tool Calling Prompt）
+* *明确指令引导模型选择正确工具（如：“若需查询订单，请调用query_order_tool”）
+* 提供清晰参数描述与示例，减少误调用
+
+#### Few-shot Prompting与Example Selector
+
+- **Few-shot Prompting**：用“示范”教模型怎么做
+- **Example Selector**：从大量示范里，自动挑“最合适的那几个”
+#### **安全与管理**
+
+* Guardrails / Safe Prompting：防御提示注入、防止越权
+* Prompt版本管理与A/B测试：科学迭代提示，评估效果
 ## Agent
 
 OpenAI将AI-Agent定义: 以大语言模型为大脑驱动，具备**自主感知、规划、记忆和使用工具**能力，能自动执行复杂任务的系统
@@ -153,7 +305,100 @@ agent                         Envirement
 
 ## MCP
 
-**MCP旨在 统一大型语言模型（LLM）与外部数据源和工具之间的通信协议。**MCP 主要是为了解决当前 AI 模型因数据孤岛限制，无法充分发挥潜力的难题，MCP 使得 AI 应用能够安全地访问和操 作本地及远程数据，为 AI 应用提供了连接万物的接口。
+
+### Function Call
+
+![[images/Pasted image 20260627211754.png]]
+
+#### 定义
+
+OpenAI的Function Calling（现称为Tool Calling）是构建智能Agent的核心技术之一，它改变了传统LLM直接生成答案的
+模式，转而让模型“思考”是否需要调用外部工具来完成任务。
+
+一个Agent Loop（代理循环）：
+User Input->
+1. 向模型发起一个包含其可调用工具的请求
+2. 接收来自模型的工具调用
+3. 在应用程序端执行代码，使用工具调用的输入
+4. 使用工具输出向模型发起第二次请求
+5. 接收来自模型的最终响应（或更多的工具调用）
+
+#### 工程意义
+
+Function Call的工程意义
+
+| **<br><br>维度<br><br>** | **<br><br>价值<br><br>**         |
+| ---------------------- | ------------------------------ |
+| 解耦                     | 模型只负责“要不要查”，不负责“怎么查”           |
+| 智能调度                   | 实现多工具协同、条件判断、链式调用              |
+| 易于扩展                   | 新增工具无需改主逻辑，只需注册                |
+| 可观察性                   | 能追踪每一步决策（reasoning）和动作（action） |
+| 安全性                    | 可在执行前审查 tool_call 参数（防注入）      |
+| 支持复杂流程                 | 如：先查库存 → 再算价格 → 最后下单           |
+|                        |                                |
+
+**工程化进阶方向**
+1. 工具注册中心：统一管理所有tools，支持动态加载
+2. 参数校验中间件：防止恶意或错误参数传入
+3. 超时与重试机制：工具调用失败自动重试
+4. 缓存机制：相同参数避免重复调用
+5. 权限控制：某些工具仅限特定角色调用
+6. 日志追踪：记录完整的Agent Loop流程
+7. 可视化调试面板：查看模型决策链路
+
+### MCP
+
+#### 定义
+
+**模型上下文协议（MCP）** 是 统一大型语言模型（LLM）与外部数据源和工具之间的一种**通信开放协议**。**MCP 使得 AI 应用能够安全地访问和操作本地及远程数据，为 AI 应用提供了连接万物的接口。
+
+**核心能力**
+MCP是一种开放协议，它标准化了应用程序如何向LLM提供工具和上下文。
+
+#### 两者关系区别
+
+**关系**
+* **MCP让FunctionCall变得标准化** ：FunctionCall借助MCP，不用客户端重复造轮子，实现函数定义与函数调用
+* 统一接口：**MCP统一调用规则，通过list_tools提供标准化的函数列表给到大模型**，无论模型是否支持FunctionCall 
+* 双模式支持： 
+	* 支持FunctionCall的模型：将函数列表填入tools字段
+	* 不支持FunctionCall的模型：通过提示词传递函数信息
+
+**核心定位差异**
+* Tool Calling：你告诉模型“你能用哪些工具”
+* MCP：模型自动发现并使用互联网上的“标准化工具
+
+| **<br><br>维度<br><br>** | **<br><br>Function / Tool Calling<br><br>** | **<br><br>MCP (Model Context Protocol)<br><br>** |
+| ---------------------- | ------------------------------------------- | ------------------------------------------------ |
+| 控制权归属                  | 开发者完全掌控工具定义与执行                              | 模型可调用第三方远程服务（非你部署）                               |
+| 工具部署位置                 | 工具在你的代码中（本地或内网）                             | 工具在远程服务器上（如 mcp.stripe.com）                      |
+| 信任模型                   | 完全可信（你自己写的）                                 | 需审慎信任第三方（可能恶意）                                   |
+| 标准化协议                  | OpenAI 私有实现（非开放标准）                          | 开放协议（跨平台、多厂商支持）                                  |
+| 典型用途                   | 调用内部 API、数据库、计算函数                           | 集成 SaaS 服务（Stripe、Shopify、Twilio等）               |
+
+**使用场景差异**
+
+| **<br><br>场景<br><br>**    | **<br><br>推荐方案<br><br>** | **<br><br>理由<br><br>** |
+| ------------------------- | ------------------------ | ---------------------- |
+| 调用内部数据库、私有 API            | Tool Calling             | 安全、可控、低延迟              |
+| 快速接入 Stripe/PayPal/Twilio | MCP                      | 无需开发，开箱即用              |
+| 多个 SaaS 系统联动              | MCP                      | 统一协议，避免重复对接            |
+| 对安全性要求极高（金融、医疗）           | MCP + Approval           | 必须审查每个调用               |
+| 希望构建通用 AI 工具平台            | MCP                      | 支持插件化、可发现、可组合          |
+|                           |                          |                        |
+|                           |                          |                        |
+**Tool Calling之外的工程强化手段**
+1. 流式输出（Streaming）
+2. 异步调用与批处理（Async & Batching）
+3. 超时控制与重试策略
+4. 上下文管理与长度优化
+5. 工具调用审批机制（Approval）
+6. 结构化输出（JSON Schema）
+7. 认证与安全头管理（Authentication）
+8. 限流、熔断与降级策略
+9. 监控、日志与链路追踪
+10. 输入净化与提示词注入防护
+### **MCP工作原理**
 
 MCP 采用的是经典的客户端 - 服务器架构，几个概念:
 
@@ -170,16 +415,6 @@ MCP 采用的是经典的客户端 - 服务器架构，几个概念:
 - MCP分为MCP Server和MCP Client两部分
 - MCP Server: 目前已有多种现成的MCP Server可直接对接，无需自行开发代码
 - MCP Client特点: 只有一种，被集成到各类客户端中，用于与MCP server交互
-
-
-### **MCP工作原理**
-
-![[images/Pasted image 20260627211754.png]]
-MCP与FunctionCall的关系？
-* ***MCP让FunctionCall变得标准化** 
-核心价值：MCP不是替代FunctionCall，而是解决函数封装和调用的标准化问题，**FunctionCall借助MCP，不用客户端重复造轮子，实现函数定义与函数调用**，两者是补充关系 
-* 统一接口：**MCP统一调用规则，通过list_tools提供标准化的函数列表给到大模型**，无论模型是否支持FunctionCall 
-* 双模式支持： - 支持FunctionCall的模型：将函数列表填入tools字段 - 不支持FunctionCall的模型：通过提示词传递函数信息
 
 ### 通信方式与消息格式
 #### 通信方式

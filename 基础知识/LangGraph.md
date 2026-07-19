@@ -1,5 +1,4 @@
-
-> FROM 极客时间笔记，融汇贯通到日常笔记中
+#### 工程化组件
 - LangChain：
     - 工具库性质
     - 线性流程为主
@@ -9,6 +8,12 @@
     - 支持状态机/循环/分支
     - 适合复杂业务流程
 
+LangGraph库
+三个关键组件来定义Agent行为:
+1.节点（Node）
+2.边（Edge）
+3.状态属性（State Attribute）
+![[images/Pasted image 20260718165957.png]]
 
 ##### 多Agent系统实现
 - 典型架构：
