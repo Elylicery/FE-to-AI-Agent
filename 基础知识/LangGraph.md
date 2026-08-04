@@ -30,6 +30,8 @@ LangGraph核心优势
 
 ## LangGraph基础组件
 
+#### 关键组件
+
 三个关键组件来定义Agent行为:
 ![[images/Pasted image 20260718165957.png]]
 
@@ -44,8 +46,41 @@ LangGraph核心优势
 4. 定义图的起点、终点和节点边（add_edge 函数为图添加边）
 5. 编译图架构为 Runnable 可运行组件（graph.compile 函数编译图）
 6. 调用编译后的 Runnable 可运行组件执行图（graph.invoke 函数调用图）
+ 
+## LangGraph实现ReACT架构
+### 条件边与循环流程
 
+普通边 add_edge()
+条件边 add_conditional_edge()
 
+> 对于循环流程，一般都会有一个条件边用于跳出循环，都则LangGraph会检测到没有跳出循环的条件，应用程序会崩溃且消耗巨大系统资源
+
+### create_agent 构建器
+
+在 LangGraph 中除了可以搭节点、变来构建 Agent 智能体，这也是 LangGraph 自由性高的一个优点，我们还可以使用预构建函数（实际是语法糖）`langchain.agents.create_agent` 构建智能体
+### 其他预构建组件
+
+langgraph内置了一些高频使用的预构建组件，例如
+* `MessageState` 自定义状态
+* `toolNode` 节点就是工具执行节点，该节点会自动执行数据状态中最后一条消息中的工具调用信息
+* `validationNode` 检验最后一个AiMessage中所有工具请求是否正确，用于校验LLM的结构化输出是否正确
+* `InhectedState` 用于在工具上注入数据状态，这样在工具中也可以获取到`图架构应用`的`数据状态` 
+## 图结构应用程序中删除消息
+
+### 更新删除与归纳函数
+
+使用RemoveMessage装饰器配合add_messages()函数
+
+> Important
+> 
+> 删除消息一定要特别注意，因为绝大部分模型期望消息列表存在某些规则。例如，有些模型期望它们以 user 消息开头，其他模型期望所有带有工具调用的消息后面都跟着工具消息。**删除消息时，需要确保不会违反这些规则。**
+### 过滤与修剪消息
+
+在 LangGraph 中 状态 可以很便捷管理整个过程中产生的所有消息信息，但是随着持续对话，亦或者图结构组件的增加，对话历史会不断累积，并占用越来越多的上下文窗口，这通常是不可取的，因为它会导致对 LLM 的调用变得非常昂贵和耗时，并降低 LLM 生成内容的正确性，所以在 LangGraph 中一般还需要**对消息进行过滤和修剪**
+
+**过滤/修剪 一般不会更改 状态，而是在调用 LLM 时，只传递特定条数的消息或者按照 token长度 进行修剪。**
+
+langchain对于该需求封装了特定函数 trim_messages
 
 ## 其他输入
 ##### 多Agent系统实现
