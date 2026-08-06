@@ -82,6 +82,50 @@ langgraph内置了一些高频使用的预构建组件，例如
 
 langchain对于该需求封装了特定函数 trim_messages
 
+## 检查点实现记忆持久化功能
+
+**检查点与线程**
+
+在 LangGraph 中，持久化使用的就是 **检查点** ，并且除了这个功能，每个 检查点 还和 线程ID 有关， 检查点 存储的并不是整个图结构应用程序的 节点状态 ，而是存储 特定线程 的数据状态，这是因为 LangGraph 在设计的时候就考虑到一个应用的多次独立对话功能。
+
+
+**检查点实现记忆持久化功能**
+
+ 检查点 来为图提供持久化记忆，操作两步：
+1. 实例化一个检查点，例如 `AsyncSqliteSaver`或者 `MemorySaver()`，亦或者自定义检查点。
+2. 在图编译的时候传递检查点，例如 `compile(checkpointer=my_checkpointer)`
+接下来在和图程序交互时传递`config`，并配置`thread_id` 即可记住以往的历史记忆/存档
+
+```python
+# 使用预构建create_react_agent并传递检查点
+checkpointer = MemorySaver()
+agent = create_react_agent(
+    model=model,
+    tools=tools,
+    checkpointer=checkpointer,
+)
+
+# 调用智能体并输出内容
+print(agent.invoke(
+    {"messages": [("human", "你好，我叫小课，我喜欢游泳打球，你喜欢什么呢？")]},
+    config={"configurable": {"thread_id": 1}}
+))
+
+# 二次调用
+print(agent.invoke(
+    {"messages": [("human", "你知道我叫什么吗？")]},
+    config={"configurable": {"thread_id": 1}}
+))
+
+```
+
+**LangGraph其他检查点**
+
+在 LangGraph 中，除了封装了 MemorySaver 基于 临时内存 的检查点，还封装了基于 Postgres、MongoDB 和 Redis 的检查点。
+
+这些检查点的运行流程都一模一样，只是持久化/存储的介质不一样而已，根据存储方式的不同使用不同的实例化方式。
+
+
 ## 其他输入
 ##### 多Agent系统实现
 - 典型架构：
