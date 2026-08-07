@@ -86,7 +86,7 @@ langchain对于该需求封装了特定函数 trim_messages
 
 **检查点与线程**
 
-在 LangGraph 中，持久化使用的就是 **检查点** ，并且除了这个功能，每个 检查点 还和 线程ID 有关， 检查点 存储的并不是整个图结构应用程序的 节点状态 ，而是存储 特定线程 的数据状态，这是因为 LangGraph 在设计的时候就考虑到一个应用的多次独立对话功能。
+在 LangGraph 中，持久化使用的是 **检查点** ，并每个 检查点 还和 线程ID 有关， **检查点** 存储的并不是整个图结构应用程序的 节点状态 ，而是**存储 特定线程 的数据状态**，这是因为 LangGraph 在设计的时候就考虑到一个应用的多次独立对话功能。
 
 
 **检查点实现记忆持久化功能**
@@ -125,8 +125,84 @@ print(agent.invoke(
 
 这些检查点的运行流程都一模一样，只是持久化/存储的介质不一样而已，根据存储方式的不同使用不同的实例化方式。
 
+## 图结构断点实现Agent与人进行交互
 
-## 其他输入
+### 人在环路与断点
+
+**人在环路（Human-in-the-loop，简称 HIL）** 交互对于 Agent 系统至关重要，特别是在一些特定领域的 Agent 中，需要经过人类的允许或者指示才能进入下一步（例如某些敏感或者重要操作），而 HIL 最重要的部分就是 断点。
+
+断点 建立在 LangGraph 检查点之上，检查点在每个节点执行后保存图的状态，并且 检查点 可以使得图执行可以特定点暂停，等待人为批准，然后从最后一个检查点恢复执行。
+
+流程图
+
+![[images/Pasted image 20260806211053.png]]
+
+```python
+# 编译图为Runnable可运行组件
+checkpointer = MemorySaver()
+graph = graph_builder.compile(checkpointer=checkpointer, interrupt_before=["tools"])
+
+# 调用图架构应用
+config = {"configurable": {"thread_id": 1}}
+state = graph.invoke(
+    {"messages": [("human", "2024年北京半程马拉松的前3名成绩是多少")]},
+    config=config,
+)
+print(state)
+
+# 获取人类提示
+if hasattr(state["messages"][-1], "tool_calls") and len(state["messages"][-1].tool_calls) > 0:
+    tool_calls = state["messages"][-1].tool_calls
+    print("准备调用工具：", tool_calls)
+    human_input = input("如需调用工具请回复yes，否则回复no：")
+    if human_input.lower() == "yes":
+        print(graph.invoke(None, config))
+    else:
+        print("图程序执行结束")
+
+
+```
+
+### 在图结构上更新对应状态
+在图结构上，除了能通过 节点 更新 数据状态，还可以在图的外部通过调用图的 `get_state()` 与` update_state()` 的方式来实现对数据状态的更新（特定线程下），并且 `get_state()` 和 `update_state()` 功能必须在 检查点 模式下才支持。
+
+```python
+# 6.更新图的状态，去篡改工具消息
+graph_state = graph.get_state(config)
+tool_message = ToolMessage(
+    # id是告诉归纳函数我和原始数据重复了，请直接覆盖
+    id=graph_state[0]["messages"][-1].id,
+    # 告诉大语言模型工具调用id，这里的工具调用id是让大语言模型知道这条消息是和哪个函数关联
+    tool_call_id=graph_state[0]["messages"][-2].tool_calls[0]["id"],
+    name=graph_state[0]["messages"][-2].tool_calls
+```
+
+## 子图架构实现AI工作流
+
+对于一些更加复杂的系统，子图是一个非常有用的设计原则。使用子图允许在图的不同部分创建和管理不同的状态，这样可以轻松利用 LangGraph 实现类似 多智能体 亦或者 AI工作流 之类的功能，每个功能之间相互独立隔离，最后组装成一个大型复杂应用。
+
+创建 子图 最核心的部分要认识到 图 之间的信息传递，入口图 是父级，两个子图都被定义成 入口图 的节点，并且两个子图都继承了父级 入口图 的状态，并且每个子图都可以拥有自己的私有状态，任何想传回父级 入口图 的值，只需要在入口图中定义即可。
+
+![[images/Pasted image 20260806214416.png]]
+
+## LangGraph实现CRAG图
+
+ CRAG（纠正性索引增强生成）优化策略，在该优化策略中引入了一个轻量级的评估器用于评估检索到的文档的质量，并根据评估结果触发不同的知识检索动作，
+ 
+ 运行流程：
+![[images/Pasted image 20260807151113.png]]
+
+## 两种基础流式响应
+
+LangGraph 中，流式响应每次输出的都是一个节点的数据状态，流式模式有两种：
+- `values`：此流式模式返回图的值，这是每个节点调用后图的`完整状态`（总量）；
+- `updates`：此流式模式返回图的更新，这是每个节点调用后图的`状态更新`（增量）；
+
+使用：调用 stream() 函数时，传递 stream_mode 参数配置不同的流式响应模式
+
+
+
+## 其他输入（补充进文档里）
 ##### 多Agent系统实现
 - 典型架构：
     - 客服Agent：接收用户请求

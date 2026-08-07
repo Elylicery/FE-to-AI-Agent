@@ -35,6 +35,7 @@ AI应用开发各环节差异
 
 ![[images/Pasted image 20260627220740.png]]
 
+
 ### 项目目录结构
 ```
 |---app // 应用入口集合
@@ -151,6 +152,14 @@ pause
 ```
 
 ## 功能设计
+
+### 聊天机器人
+
+![[images/Pasted image 20260807155437.png]]
+
+![[images/Pasted image 20260807155505.png]]
+
+![[images/Pasted image 20260807155911.png]]
 
 
 ## 部署上线
