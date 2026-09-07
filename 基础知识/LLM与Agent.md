@@ -1,16 +1,16 @@
 ## LLM
 
-LLM全称Large Language Model，即大语言模型，是一种给模型一些输入，它可以用大量数据训练的深度学习模型预测并返回相应的输出
+LLM（Large Language Model），即大语言模型，是一种给模型一些输入，它可以用大量数据训练的深度学习模型预测并返回相应的输出
 
-本质：连续预测下一个Token的生成系统
+本质：**连续预测下一个Token的生成系统**
 
 <details >
 
 <summary>📝 AIGC与AGI是什么</summary>
 
-AI-Genrate Content，通过对已有数据进行学习和模式识别，**以适当的泛化能力生成相关内容的技术**
-
-**AGI（artifical general intelligence）全称人工通用智能**，是指能够理解、学习和应用广泛的知识和技能的人工智能系统
+AI-Genrate Content，通过对已有数据进行学习和模式识别，**以适当的泛化能力生成相关内容的技术
+<br/>
+AGI（artifical general intelligence）全称人工通用智能，是指能够理解、学习和应用广泛的知识和技能的人工智能系统
 </details>
 
 ### Token
