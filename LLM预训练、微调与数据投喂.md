@@ -9,7 +9,7 @@ AutoGen / CrewAI
 
 微调不是为了“让模型学会新知识”（那是 RAG 的任务），而是为了改变模型的“表达方式” 、 “决策偏好”和“输出风格” ，实现深度定制化。
 
-![[images/Pasted image 20260810225736.png]]
+![微调目的](images/Pasted%20image%2020260810225736.png)
 
 ### 微调方法
 
@@ -17,7 +17,7 @@ AutoGen / CrewAI
 - P-Tuning v2：可学习的Prompt，适合任务特定优化
 - Adapter：插入小模块，模块化更新
 
-![[images/Pasted image 20260810225838.png]]
+![微调方法](images/Pasted%20image%2020260810225838.png)
 
 适用场景分析
 
