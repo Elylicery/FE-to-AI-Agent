@@ -16,13 +16,6 @@
 2. 从推理角度来看：
    - 基于 Transformer 的模型可以通过引入各种参数与策略，例如 temperature，nucleus samlper来改变每次生成的内容。
 
-### 1.3 什么是 LLMs复读机问题？
-
-1. 字符级别重复，指大模型针对一个字或一个词重复不断的生成，例如在电商翻译场景上，会出现“steckdose steckdose steckdose steckdose steckdose steckdose steckdose steckdose...”。
-2. 语句级别重复，大模型针对一句话重复不断的生成例如在多模态大模型图片理解上，生成的结果可能会不断重复图片的部分内容，比如“这是一个杯子，这是一个杯子 ...”。
-3. 章节级别重复，多次相同的 prompt输出完全相同或十分近似的内容，没有一点创新性的内容比如你让大模型给你写一篇关于春天的小作文，结果发现大模型的生成结果千篇一律，甚至近乎一摸一样。
-4. 大模型针对不同的 prompt也可能会生成类似的内容，且有效信息很少、信息熵偏低。
-
 ### 1.4 各个专业领域是否需要各自的大模型来服务？
 
 各个专业领域通常需要各自的大模型来服务，原因如下：
@@ -35,10 +28,6 @@
 ### 1.5 大模型大概有多大，模型文件有多大?
 
 一般放出来的模型文件都是 fp16 的，假设是一个 n B 的模型，那么模型文件占 2n G，fp16加载到显存里做推理也是占 2n G，对外的 pr 都是 10n亿参数的模型。
-
-### 1.6 能否用 4 * v100 32G 训练 vicuna 65b？
-
-不能。首先，llama 65b 的权重需要 5* v100 32G 才能完整加载到 GPU。其次，vicuna 使用flash- attention 加速训练，暂不支持 v100，需要 turing 架构之后的显卡。（fastchat 上可以通过调用train脚本训练 vicuna 而非 train_mem，其实也是可以训练的）
 
 ### 1.7 nB 模型推理需要多少显存？
 
@@ -59,33 +48,19 @@
 - 用 Grokking（顿悟）来解释涌现：对于某个任务 T，尽管我们看到的预训练数据总量是巨大的，但是与 T相关的训练数据其实数量很少。当我们推大模型规模的时候，往往会伴随着增加预训练数据的数据量操作，这样，当模型规模达到某个点的时候，与任务 T相关的数据量，突然就达到了最小要求临界点，于是我们就看到了这个任务产生了 Grokking现象。
 尽管涌现能力为模型带来了创造性和独特性，但也需要注意其生成的内容可能存在偏差、错误或不完整性。因此，在应用和使用涌现能力强的模型时，需要谨慎评估和验证生成的输出，以确保其质量和准确性。
 
-### 1.10 如何缓解 LLMs复读机问题？
-
-为了缓解 LLMs复读机问题，可以尝试以下方法：
-- 多样性训练数据：在训练阶段，使用多样性的语料库来训练模型，避免数据偏差和重复文本的问题。这可以包括从不同领域、不同来源和不同风格的文本中获取数据。
-- 引入噪声：在生成文本时，引入一些随机性或噪声，例如通过采样不同的词或短语，或者引入随机的变换操作，以增加生成文本的多样性。这可以通过在生成过程中对模型的输出进行采样或添加随机性来实现。
-- 温度参数调整：温度参数是用来控制生成文本的多样性的一个参数。通过调整温度参数的值，可以控制生成文本的独创性和多样性。较高的温度值会增加随机性，从而减少复读机问题的出现。
-- Beam 搜索调整：在生成文本时，可以调整 Beam 搜索算法的参数。Beam搜索是一种常用的生成策略，它在生成过程中维护了一个候选序列的集合。通过调整 Beam大小和搜索宽度，可以控制生成文本的多样性和创造性。
-- 后处理和过滤：对生成的文本进行后处理和过滤，去除重复的句子或短语，以提高生成文本的质量和多样性。可以使用文本相似度计算方法或规则来检测和去除重复的文本。
-- 人工干预和控制：对于关键任务或敏感场景，可以引入人工干预和控制机制，对生成的文本进行审查和筛选，确保生成结果的准确性和多样性。
-需要注意的是，缓解 LLMs复读机问题是一个复杂的任务，没有一种通用的解决方案。不同的方法可能适用于不同的场景和任务，需要根据具体情况进行选择和调整。此外，解决复读机问题还需要综合考虑数据、训练目标、模型架构和生成策略等多个因素，需要进一步的研究和实践来提高大型语言模型的生成文本多样性和创造性。
-
 ### 1.11 LLMs输入句子长度理论上可以无限长吗？
 
-理论上来说，LLMs（大型语言模型）可以处理任意长度的输入句子，但实际上存在一些限制和挑战。下面是一些相关的考虑因素：
-- 计算资源：生成长句子需要更多的计算资源，包括内存和计算时间。由于 LLMs通常是基于神经网络的模型，计算长句子可能会导致内存不足或计算时间过长的问题。
-- 模型训练和推理：训练和推理长句子可能会面临一些挑战。在训练阶段，处理长句子可能会导致梯度消失或梯度爆炸的问题，影响模型的收敛性和训练效果。在推理阶段，生成长句子可能会增加模型的错误率和生成时间。
-- 上下文建模：LLMs是基于上下文建模的模型，长句子的上下文可能会更加复杂和深层。模型需要能够捕捉长句子中的语义和语法结构，以生成准确和连贯的文本。
+- 计算资源：**注意力机制的平方复杂度**“：Transformer 的自注意力要让序列中每个 token 与所有其他 token 计算关联，计算量和显存开销随长度呈 **O(n²)** 增长。序列翻倍，计算成本约变 4 倍。所以“无限长”在物理上不可能——哪怕算力无限，时间也不允许。
+- **实际模型的上下文窗口**：GPT-4 时代 8K/32K，现在主流模型 128K～1M token（如 Gemini 系列号称百万级）。这是“标称上限”，不等于“有效上限”——存在 **lost in the middle** 现象：模型对超长上下文中间部分的信息检索准确率明显下降，开头和结尾记得最清楚。
 
 ### 1.12 如何让大模型处理更长的文本？
 
-要让大模型处理更长的文本，可以考虑以下几个方法：
-1. 分块处理：将长文本分割成较短的片段，然后逐个片段输入模型进行处理。这样可以避免长文本对模型内存和计算资源的压力。在处理分块文本时，可以使用重叠的方式，即将相邻片段的一部分重叠，以保持上下文的连贯性。
-2. 层次建模：通过引入层次结构，将长文本划分为更小的单元。例如，可以将文本分为段落、句子或子句等层次，然后逐层输入模型进行处理。这样可以减少每个单元的长度，提高模型处理长文本的能力。
-3. 部分生成：如果只需要模型生成文本的一部分，而不是整个文本，可以只输入部分文本作为上下文，然后让模型生成所需的部分。例如，输入前一部分文本，让模型生成后续的内容。
-4. 注意力机制：注意力机制可以帮助模型关注输入中的重要部分，可以用于处理长文本时的上下文建模。通过引入注意力机制，模型可以更好地捕捉长文本中的关键信息。
-5. 模型结构优化：通过优化模型结构和参数设置，可以提高模型处理长文本的能力。例如，可以增加模型的层数或参数量，以增加模型的表达能力。还可以使用更高效的模型架构，如Transformer等，以提高长文本的处理效率。
-需要注意的是，处理长文本时还需考虑计算资源和时间的限制。较长的文本可能需要更多的内存和计算时间，因此在实际应用中需要根据具体情况进行权衡和调整。
+现代主流方案分几类：
+1. 长上下文架构改进：对位置编码做外推/内插（RoPE 的线性内插、NTK-aware scaling、YaRN 等），让相对位置编码适应训练窗口以外的长度；配合 FlashAttention 系列降低注意力的显存与计算开销。
+2. 高效注意力：稀疏注意力、线性注意力、滑动窗口注意力（如 Mistral 的 SWA）等，把注意力的 O(n²) 复杂度降到近似线性。
+3. 直接选长上下文模型：主流模型已原生支持 128K～1M token（如 Gemini 系列百万级），多数场景选型即可，不必自己改造。
+4. 工程手段（上下文仍然不够时）：分块处理 + 相邻片段重叠滑窗；层次摘要（map-reduce：先分块总结再汇总）；RAG 检索式——只把与问题相关的片段送进模型。
+需要注意 lost in the middle 现象：模型对超长上下文中间部分的信息召回明显变差，关键信息应尽量放在头尾，或者用 RAG 缩小上下文。
 
 ### 1.13 为什么大模型推理时显存涨的那么多还一直占着？
 
@@ -98,20 +73,12 @@
 
 ### 1.14 大模型在 GPU 和 CPU上推理速度如何？
 
-大语言模型在 GPU 和 CPU 上进行推理的速度存在显著差异。一般情况下，GPU在进行深度学习推理任务时具有更高的计算性能，因此大语言模型在 GPU 上的推理速度通常会比在 CPU上更快。
-以下是 GPU 和 CPU在大语言模型推理速度方面的一些特点：
-1. GPU推理速度快：GPU具有大量的并行计算单元，可以同时处理多个计算任务。对于大语言模型而言，GPU可以更高效地执行矩阵运算和神经网络计算，从而加速推理过程。
-2. CPU推理速度相对较慢：相较于 GPU，CPU 的计算能力较弱，主要用于通用计算任务。虽然 CPU也可以执行大语言模型的推理任务，但由于计算能力有限，推理速度通常会较慢。
-3. 使用 GPU 加速推理：为了充分利用 GPU 的计算能力，通常会使用深度学习框架提供的 GPU加速功能，如 CUDA 或 OpenCL。这些加速库可以将计算任务分配给 GPU并利用其并行计算能力，从而加快大语言模型的推理速度。
-需要注意的是，推理速度还受到模型大小、输入数据大小、计算操作的复杂度以及硬件设备的性能等因素的影响。因此，具体的推理速度会因具体情况而异。一般来说，使用 GPU进行大语言模型的推理可以获得更快的速度。
-
-### 1.15 推理速度上，INT8 和 FP16比起来怎么样？
-
-在大语言模型的推理速度上，使用 INT8（8 位整数量化）和 FP16（半精度浮点数）相对于 FP32（单精度浮点数）可以带来一定的加速效果。这是因为 INT8 和 FP16的数据类型在表示数据时所需的内存和计算资源较少，从而可以加快推理速度。
-具体来说，INT8在相同的内存空间下可以存储更多的数据，从而可以在相同的计算资源下进行更多的并行计算。这可以提高每秒推理操作数（Operations Per Second，OPS）的数量，加速推理速度。
-FP16 在相对较小的数据范围内进行计算，因此在相同的计算资源下可以执行更多的计算操作。虽然FP16的精度相对较低，但对于某些应用场景，如图像处理和语音识别等，FP16的精度已经足够满足需求。
-需要注意的是，INT8 和 FP16的加速效果可能会受到硬件设备的支持程度和具体实现的影响。某些硬件设备可能对 INT8 和 FP16有更好的优化支持，从而进一步提高推理速度。
-综上所述，使用 INT8 和 FP16数据类型可以在大语言模型的推理过程中提高推理速度，但需要根据具体场景和硬件设备的支持情况进行评估和选择。
+大语言模型在 GPU 上推理通常显著快于 CPU：GPU 拥有大量并行计算单元，更适合大模型中密集的矩阵运算；CPU 面向通用计算，跑大模型明显偏慢。
+不过这一差距已被工程手段大幅缩小：
+1. 量化推理：4-bit 量化（GGUF 格式）配合 llama.cpp / Ollama 等框架，7B～14B 级模型在消费级 CPU 甚至 Apple Silicon 上也能以可接受的速度运行，本地部署已是常规操作。
+2. 服务端推理框架：高吞吐场景普遍使用 vLLM、SGLang 等，借助连续批处理（continuous batching）、PagedAttention、投机解码等技术大幅提升 GPU 利用率。
+3. 模型侧：MoE 架构（如 DeepSeek-V3 等）推理时只激活部分专家，用更少的算力获得更强的能力。
+综上：追求低延迟高吞吐选 GPU + 专用推理框架；离线、隐私敏感或轻量场景，量化后的 CPU 推理也完全可行。
 
 ### 1.16 大模型生成时的参数怎么设置？
 
@@ -123,16 +90,16 @@ FP16 在相对较小的数据范围内进行计算，因此在相同的计算资
 
 ### 1.17 有哪些省内存的大语言模型训练 / 微调 /推理方法？
 
-有一些方法可以帮助省内存的大语言模型训练、微调和推理，以下是一些常见的方法：
-1. 参数共享（Parameter Sharing）：通过共享模型中的参数，可以减少内存占用。例如，可以在不同的位置共享相同的嵌入层或注意力机制。
-2. 梯度累积（Gradient Accumulation）：在训练过程中，将多个小批次的梯度累积起来，然后进行一次参数更新。这样可以减少每个小批次的内存需求，特别适用于 GPU内存较小的情况。
-3. 梯度裁剪（Gradient Clipping）：通过限制梯度的大小，可以避免梯度爆炸的问题，从而减少内存使用。
-4. 分布式训练（Distributed Training）：将训练过程分布到多台机器或多个设备上，可以减少单个设备的内存占用。分布式训练还可以加速训练过程。
-5. 量化（Quantization）：将模型参数从高精度表示（如 FP32）转换为低精度表示（如 INT8或FP16），可以减少内存占用。量化方法可以通过减少参数位数或使用整数表示来实现。
-6. 剪枝（Pruning）：通过去除冗余或不重要的模型参数，可以减少模型的内存占用。剪枝方法可以根据参数的重要性进行选择，从而保持模型性能的同时减少内存需求。
-7. 蒸馏（Knowledge Distillation）：使用较小的模型（教师模型）来指导训练较大的模型（学生模型），可以从教师模型中提取知识，减少内存占用。
-8. 分块处理（Chunking）：将输入数据或模型分成较小的块进行处理，可以减少内存需求。例如，在推理过程中，可以将较长的输入序列分成多个较短的子序列进行处理。
-这些方法可以结合使用，根据具体场景和需求进行选择和调整。同时，不同的方法可能对不同的模型和任务有不同的效果，因此需要进行实验和评估。
+常见方法如下：
+1. 参数高效微调（LoRA / QLoRA）：冻结预训练权重，只训练插入的低秩适配器，微调显存需求比全量微调低一个数量级，是最常用的省内存微调方案。
+2. 量化（Quantization）：将模型参数从高精度（FP16）转换为低精度（INT8 / INT4）。训练侧有 QLoRA，推理侧有 GPTQ / AWQ / GGUF 等。
+3. 梯度累积（Gradient Accumulation）：将多个小批次的梯度累积起来再更新参数，降低单批显存需求，适合 GPU 显存较小的情况。
+4. 梯度检查点（Activation Checkpointing）：不保留全部中间激活，反向传播时重算，以时间换显存。
+5. 分布式训练与显存分片（DeepSpeed ZeRO 等）：把优化器状态、梯度、参数切分到多卡多机，减少单设备占用；还可进一步把优化器状态 offload 到 CPU 内存。
+6. 蒸馏（Knowledge Distillation）：用较大的教师模型指导训练较小的学生模型，把大模型能力"压缩"进小模型，降低部署显存（如把 R1 级推理能力蒸馏到 7B 模型）。
+7. 剪枝（Pruning）：去除冗余或不重要的参数，减少模型内存占用。
+8. 分块处理（Chunking）：将输入数据分成较小的块处理，长上下文场景可控制单次输入长度。
+这些方法可以组合使用，按训练 / 微调 / 推理不同阶段和具体场景选择。
 
 ### 1.18 如何让大模型输出合规化
 
@@ -146,16 +113,10 @@ FP16 在相对较小的数据范围内进行计算，因此在相同的计算资
 7. 合规培训和教育：为使用模型的人员提供合规培训和教育，使其了解合规要求，并正确使用模型以确保合规性。
 需要注意的是，合规性要求因特定领域、应用和地区而异，因此在实施上述方法时，需要根据具体情况进行调整和定制。同时，合规性是一个动态的过程，需要与法律、伦理和社会要求的变化保持同步。
 
-### 1.19 如何让 GPT工作得更好？
-
-魔法提示词：“让我们一步步地思考。（let's think step by step）”，通过告诉模型，让它一步一步地解决问题，它可能会给出更加可靠的答案。
-专家假设提示词：你可以说，“假设你是一个领域专家，假设你的 IQ 是 120。”通过加入这样的提示词，LLM 会倾向于给出更高质量的答案。注意：不要提出过高的要求，比如说，“假设你的 IQ 是 400”，这可能会超出数据分布范围，甚至可能让模型在科幻数据分布中进行角色扮演。
-规避它的弱点：我们知道现有的 LLM 并不擅长计算。针对这个问题，你可以告诉它，“你的心算不太好。每当你需要进行大数加法、乘法或其他操作时，请使用这个计算器（插件）。以下是你如何使用计算器。”
-
 ### 1.20 LLM应用开发基础术语
 
 1. 大模型：一般指 1亿以上参数的模型，但是这个标准一直在升级，目前万亿参数以上的模型也有了。大语言模型（Large Language Model，LLM）是针对语言的大模型。
-2. 175B、60B、540B 等：这些一般指参数的个数，B 是 Billion/ 十亿的意思，175B 是 1750亿参数，这是 ChatGPT大约的参数规模。
+2. 175B、60B、540B 等：这些一般指参数的个数，B 是 Billion/ 十亿的意思，175B 是 1750亿参数，这是 GPT-3 的参数规模。
 3. 强化学习：（Reinforcement Learning）一种机器学习的方法，通过从外部获得激励来校正学习方向从而获得一种自适应的学习能力。
 4. 基于人工反馈的强化学习（RLHF）：（Reinforcement Learning from Human Feedback）构建人类反馈数据集，训练一个激励模型，模仿人类偏好对结果打分，这是 GPT-3后时代大语言模型越来越像人类对话核心技术。
 5. 涌现：（Emergence）或称创发、突现、呈展、演生，是一种现象。许多小实体相互作用后产生了大实体，而这个大实体展现了组成它的小实体所不具有的特性。研究发现，模型规模达到一定阈值以上后，会在多步算术、大学考试、单词释义等场景的准确性显著提升，称为涌现。
@@ -164,15 +125,17 @@ FP16 在相对较小的数据范围内进行计算，因此在相同的计算资
 8. 指令微调：（Instruction FineTuning），针对已经存在的预训练模型，给出额外的指令或者标注数据集来提升模型的性能。
 9. 思维链：（Chain-of-Thought，CoT）。通过让大语言模型（LLM）将一个问题拆解为多个步骤，一步一步分析，逐步得出正确答案。需指出，针对复杂问题，LLM直接给出错误答案的概率比较高。思维链可以看成是一种指令微调。
 
-### 1.21 大模型【 LLMs】后面跟的 175B、60B、540B等指什么？
+### 1.21 大模型 LLMs后面跟的 175B、60B、540B等指什么？
 
-175B、60B、540B 等：这些一般指参数的个数，B 是 Billion/ 十亿的意思，175B 是 1750亿参数，这是ChatGPT大约的参数规模。
+175B、60B、540B 等：这些一般指参数的个数，B 是 Billion/ 十亿的意思，175B 是 1750亿参数，这是 GPT-3 的参数规模。
 
 ## 02. LangChain 框架相关
 
 ### 2.1 什么是 LangChain？
 
-LangChain是一个强大的框架，旨在帮助开发人员使用语言模型构建端到端的应用程序。它提供了一套工具、组件和接口，可简化创建由大型语言模型 (LLM)和聊天模型提供支持的应用程序的过程。LangChain 可以轻松管理与语言模型的交互，将多个组件链接在一起，并集成额外的资源，例如 API和数据库。
+LangChain是一个强大的框架，旨在帮助开发人员使用语言模型构建端到端的应用程序。它提供了一套工具、组件和接口，可简化创建由大型语言模型 (LLM)提供支持的应用程序的过程。LangChain 可以轻松管理与语言模型的交互，将多个组件链接在一起，并集成额外的资源，例如 API和数据库。
+
+如今 LangChain 已发展为一套生态：LangChain（组件与集成）、LangGraph（Agent 与工作流编排运行时）、LangSmith（可观测与评估平台）。
 
 ### 2.2 LangChain 支持哪些功能?
 
@@ -182,26 +145,18 @@ LangChain是一个强大的框架，旨在帮助开发人员使用语言模型�
 
 ### 2.3 LangChain 包含哪些特点?
 
-LangChain 旨在为六个主要领域的开发人员提供支持：
-- LLM 和提示：LangChain 使管理提示、优化它们以及为所有 LLM创建通用界面变得容易。此外，它还包括一些用于处理 LLM的便捷实用程序。
-- 链(Chain)：这些是对 LLM 或其他实用程序的调用序列。LangChain为链提供标准接口，与各种工具集成，为流行应用提供端到端的链。
-- 数据增强生成：LangChain使链能够与外部数据源交互以收集生成步骤的数据。例如，它可以帮助总结长文本或使用特定数据源回答问题。
-- Agents：Agents 让 LLM做出有关行动的决定，采取这些行动，检查结果，并继续前进直到工作完成。LangChain 提供了代理的标准接口，多种代理可供选择，以及端到端的代理示例。
-- 内存：LangChain有一个标准的内存接口，有助于维护链或代理调用之间的状态。它还提供了一系列内存实现和使用内存的链或代理的示例。
-- 评估：很难用传统指标评估生成模型。这就是为什么 LangChain提供提示和链来帮助开发者自己使用 LLM评估他们的模型。
-
-### 2.3 有哪些 LangChain Model，它们之间有什么区别？
-
-LangChain model 是一种抽象，表示框架中使用的不同类型的模型。LangChain中的模型主要分为三类：
-- LLM( 大型语言模型)：这些模型将文本字符串作为输入并返回文本字符串作为输出。它们是许多语言模型应用程序的支柱。
-- 聊天模型( Chat Model)：聊天模型由语言模型支持，但具有更结构化的 API。他们将聊天消息列表作为输入并返回聊天消息。这使得管理对话历史记录和维护上下文变得容易。
-- 文本嵌入模型(Text Embedding Models)：这些模型将文本作为输入并返回表示文本嵌入的浮点列表。这些嵌入可用于文档检索、聚类和相似性比较等任务。
-开发者可以根据用例选择合适的 LangChain模型，并利用提供的组件来构建应用程序。
+LangChain 旨在为以下主要领域的开发人员提供支持：
+- 模型 I/O：统一的 Chat Model、Embedding 模型接口，管理提示词（ChatPromptTemplate），并把模型输出解析为结构化数据（with_structured_output）。
+- 组合（LCEL / Runnable）：LangChain 表达式语言用管道符 `|` 把提示词、模型、解析器、检索器等组件组合成链，所有组件实现统一的 Runnable 接口（invoke / stream / batch），可自由嵌套编排。旧版的 LLMChain 等链类已在 1.0 中移除，统一迁移到 LCEL。
+- 数据增强生成（RAG）：提供文档加载、切分、向量化、检索的标准组件，让链与外部数据源交互，例如总结长文本或基于特定数据源回答问题。
+- Agents：Agent 的构建与编排由 LangGraph 承担（状态图循环 + checkpointer 持久化），LangChain 1.0 提供的 create_agent 底层即基于 LangGraph。旧版 AgentExecutor 已移除。
+- 记忆：通过 LangGraph 的 checkpointer（会话内记忆）与 Store（跨会话长期记忆）维护链或 Agent 调用之间的状态。
+- 评估：很难用传统指标评估生成模型，LangSmith 提供链路追踪、数据集评估与线上监控来帮助开发者评估应用效果。
 
 ### 2.4 LangChain 中 Prompt Templates and Values是什么？
 
-- Prompt Template 作用：负责创建 PromptValue，这是终传递给语言模型的内容
-- Prompt Template 特点：有助于将用户输入和其他动态信息转换为适合语言模型的格式。PromptValues 是具有方法的类，这些方法可以转换为每个模型类型期望的确切输入类型（如文本或聊天消息）。
+- Prompt Template 作用：负责创建 PromptValue，即最终传递给语言模型的内容
+- Prompt Template 特点：有助于将用户输入和其他动态信息转换为适合语言模型的格式。现代统一使用 ChatPromptTemplate，配合 MessagesPlaceholder 注入对话历史等消息列表；format 后得到的是消息列表而非纯字符串，天然适配 Chat Model。PromptValues 是具有方法的类，这些方法可以转换为每个模型类型期望的确切输入类型（如文本或聊天消息）。
 
 ### 2.5 LangChain 中 Example Selectors是什么？
 
@@ -209,127 +164,55 @@ LangChain model 是一种抽象，表示框架中使用的不同类型的模型�
 
 ### 2.6 LangChain 中 Agents and Toolkits是什么？
 
-- Agent：在 LangChain中推动决策制定的实体。他们可以访问一套工具，并可以根据用户输入决定调用哪个工具；
-- Tookits：一组工具，当它们一起使用时，可以完成特定的任务。代理执行器负责使用适当的工具运行代理。
-通过理解和利用这些核心概念，可以利用 LangChain的强大功能来构建适应性强、高效且能够处理复杂用例的高级语言模型应用程序。
+- Agent：由 Chat Model 驱动决策的实体。现代 LangChain 中，模型通过原生 tool calling 能力决定调用哪个工具，Agent 的执行循环由 LangGraph 运行时承载（LangChain 1.0 的 create_agent / LangGraph 的 create_react_agent）。旧版"手工解析 ReAct 文本 + AgentExecutor"的方式已移除。
+- Toolkit：面向特定任务预打包的一组工具集合（如 SQL 工具集），主要位于 langchain-community 中，也可以用 @tool 装饰器自行组合。
+通过理解和利用这些核心概念，可以利用 LangChain 的强大功能来构建适应性强、高效且能够处理复杂用例的高级语言模型应用程序。
 
 ### 2.7 解释 LangChain 中的 ReAct (Reasoning and Acting)框架的工作原理 ,并提供一个复杂任务解决的示例实现。
 
-ReAct 框架结合了推理和行动 , 其工作原理是:
-- 思考 (Reason):分析当前情况并决定下一步行动
-- 行动 (Act):执行决定的行动
-- 观察 (Observe):获取行动的结果
-重复上述步骤直到任务完成，复杂任务解决示例（v0.1.0 版本）:
+ReAct 框架结合了推理和行动，其工作原理是：
+- 思考 (Reason)：分析当前情况并决定下一步行动
+- 行动 (Act)：执行决定的行动
+- 观察 (Observe)：获取行动的结果
+重复上述步骤直到任务完成。
+
+注意：早期版本（v0.0.x）需要手写 ReAct 提示词并用正则从模型输出中解析 Action / Action Input，这套做法已被淘汰。现代模型支持原生 tool calling，LangGraph 的 create_react_agent 内部依然是 ReAct 循环，只是"选工具"改由结构化的 tool call 完成，不再需要文本解析。示例：
 ```python
-from langchain.agents import Tool, AgentExecutor, LLMSingleActionAgent,
-AgentOutputParser
-from langchain.prompts import StringPromptTemplate
-from langchain import OpenAI, SerpAPIWrapper, LLMChain
-from langchain.schema import AgentAction, AgentFinish
-from typing import List, Union
-import re
+from langchain_openai import ChatOpenAI
+from langchain_core.tools import tool
+from langgraph.prebuilt import create_react_agent
 
-# 定义工具
-search = SerpAPIWrapper()
-tools = [
-  Tool(
-    name = "Search",
-    func=search.run,
-    description="useful for when you need to answer questions about current
-events"
-   )
-]
+@tool
+def search(query: str) -> str:
+    """联网搜索，用于回答时事类问题"""
+    return search_engine.run(query)  # 示意
 
-# 定义提示模板
-template = """Answer the following questions as best you can. You have access to
-the following tools:
+llm = ChatOpenAI(model="gpt-4o", temperature=0)
+agent = create_react_agent(llm, [search])
 
-{tools}
-
-Use the following format:
-
-Question: the input question you must answer
-Thought: you should always think about what to do
-Action: the action to take, should be one of [{tool_names}]
-Action Input: the input to the action
-Observation: the result of the action
-... (this Thought/Action/Action Input/Observation can repeat N times)
-Thought: I now know the final answer
-Final Answer: the final answer to the original input question
-
-Begin!
-
-Question: {input}
-Thought: """
-
-class CustomPromptTemplate(StringPromptTemplate):
-  template: str
-  tools: List[Tool]
-  
-  def format(self, **kwargs) -> str:
-    intermediate_steps = kwargs.pop("intermediate_steps", [])
-    thoughts = ""
-    for action, observation in intermediate_steps:
-      thoughts += action.log
-      thoughts += f"\nObservation: {observation}\nThought: "
-    kwargs["agent_scratchpad"] = thoughts
-    kwargs["tools"] = "\n".join([f"{tool.name}: {tool.description}" for tool
-in self.tools])
-    kwargs["tool_names"] = ", ".join([tool.name for tool in self.tools])
-    return self.template.format(**kwargs)
-
-prompt = CustomPromptTemplate(
-  template=template,
-  tools=tools,
-  input_variables=["input", "intermediate_steps"]
+# 复杂任务：agent 会自主决定先查纽约人口、再查东京人口，最后对比作答
+result = agent.invoke(
+    {"messages": [("user", "纽约和东京现在的人口分别是多少？相差多少？")]}
 )
-
-class CustomOutputParser(AgentOutputParser):
-  def parse(self, llm_output: str) -> Union[AgentAction, AgentFinish]:
-    if "Final Answer:" in llm_output:
-      return AgentFinish(
-        return_values={"output": llm_output.split("Final Answer:")
-[-1].strip()},
-        log=llm_output,
-       )
-    regex = r"Action: (.*?)[\n]*Action Input:[\s]*(.*)"
-    match = re.search(regex, llm_output, re.DOTALL)
-    if not match:
-      raise ValueError(f"Could not parse LLM output: `{llm_output}`")
-    action = match.group(1).strip()
-    action_input = match.group(2)
-    return AgentAction(tool=action, tool_input=action_input.strip("
-").strip('"'), log=llm_output)
-
-output_parser = CustomOutputParser()
-
-llm = OpenAI(temperature=0)
-llm_chain = LLMChain(llm=llm, prompt=prompt)
-
-tool_names = [tool.name for tool in tools]
-agent = LLMSingleActionAgent(
-  llm_chain=llm_chain,
-  output_parser=output_parser,
-  stop=["\nObservation:"],
-  allowed_tools=tool_names
-)
-
-agent_executor = AgentExecutor.from_agent_and_tools(agent=agent, tools=tools,
-verbose=True)
-
-# 使用 ReAct 代理执行复杂任务
-result = agent_executor.run("What is the current population of New York City, and
-how does it compare to Tokyo?")
-print(result)
+print(result["messages"][-1].content)
 ```
 
 ### 2.8 Langchain的架构是怎样的？它是如何实现模块化设计的？
 
-Langchain的架构是基于模块化设计的，它允许用户灵活地组合不同的功能模块来构建应用。每个模块专注于特定的任务，如文本理解、生成、转换等，这样的设计使得整个系统更加灵活且易于扩展和维护。
+LangChain 的架构是"模块化包结构 + 统一抽象"：
+- langchain-core：最底层的核心抽象——Runnable 接口（invoke / stream / batch）、消息类型（HumanMessage / AIMessage 等）、提示词模板、输出解析器。
+- langchain：组合层，提供 create_agent 等标准入口和跨模块协作能力。
+- langchain-community：社区维护的模型、向量库、工具等第三方集成（主流厂商另有官方独立包，如 langchain-openai）。
+- langchain-classic：保留 0.x 时代的旧 Chain（如 LLMChain）供平滑迁移，新项目不应使用。
+- langgraph：Agent 与工作流编排运行时，用状态图（节点 + 条件边）建模 agent 循环，配合 checkpointer 实现持久化、中断恢复与人工介入。
+- langsmith：可观测与评估平台，负责链路追踪、数据集评估与线上监控。
+
+所有组件都实现统一的 Runnable 接口，可用 LCEL 管道符 `|` 任意组合、嵌套；模块各司其职，系统因此灵活且易于扩展维护。
 
 ### 2.9 LangChain agent 如何处理复杂的多步骤任务?
 
-agent 通过任务分解和规划来处理复杂任务。它会将大任务分解为小步骤 , 然后逐步执行 ,必要时使用不同的工具。
+Agent 通过"任务分解 + 工具调用循环"处理复杂任务：LLM 把大任务拆解为小步骤，每一步决定调用哪个工具，观察结果后再决定下一步，直至完成任务。
+在 LangGraph 中这一循环被显式建模为状态图——模型节点输出 tool call，工具节点执行并把结果写回 state，条件边判断是否继续循环；配合 checkpointer 还能中断、恢复、回放多步任务，或插入人工审核节点。
 
 ### 2.10 如何为 LangChain agent 添加新的工具?
 
@@ -337,71 +220,96 @@ agent 通过任务分解和规划来处理复杂任务。它会将大任务分�
 
 ### 2.11 什么是 LangChain 中的回调(Callbacks)?
 
-回调是一种机制 , 允许开发者在 agent执行过程中的特定点插入自定义逻辑。这对于日志记录、监控和调试非常有用。
+回调是一种机制，允许开发者在链 / Agent 执行过程中的特定点（模型调用开始与结束、工具调用、错误等）插入自定义逻辑，对日志记录、监控和调试非常有用。所有 Runnable 都支持 callbacks 参数，也可用异步事件流 astream_events 订阅事件；生产环境更常用的是直接接入 LangSmith 做全链路追踪。
 
 ### 2.12 如何在 LangChain 中实现一个基本的ReAct agent?
 
-以下是一个简单的 ReAct agent实现示例：
+现代写法基于模型的原生 tool calling（已移除的 initialize_agent / load_tools 不再可用）：
 ```python
-from langchain.agents import load_tools
-from langchain.agents import initialize_agent
-from langchain.agents import AgentType
-from langchain.llms import OpenAI
+from langchain_openai import ChatOpenAI
+from langchain_core.tools import tool
+from langgraph.prebuilt import create_react_agent
 
-llm = OpenAI(temperature=0)
-tools = load_tools(["serpapi", "llm-math"], llm=llm)
-agent = initialize_agent(tools, llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-verbose=True)
+@tool
+def calculator(expression: str) -> str:
+    """计算数学表达式的值"""
+    return "48.2"  # 示意：实际可接入 sympy 等计算库
 
-agent.run("What was the high temperature in SF yesterday in Fahrenheit? What is
-that number raised to the .023 power?")
+llm = ChatOpenAI(model="gpt-4o", temperature=0)
+agent = create_react_agent(llm, [calculator])
+
+result = agent.invoke(
+    {"messages": [("user", "旧金山昨天的最高气温是多少华氏度？把它开 0.023 次方是多少？")]}
+)
+print(result["messages"][-1].content)
 ```
+LangChain 1.0 也提供了统一入口 `langchain.agents.create_agent`，底层同样是 LangGraph 运行时。
 
 ### 2.13 解释 LangChain 中的自定义 LLM 是如何工作的 ,并给出一个简单的实现示例。
 
-自定义 LLM允许你集成自己的语言模型。例如：
+自定义模型允许你把自研或私有部署的模型接入 LangChain 生态。注意：旧版基于文本补全的 LLM 基类已在 1.0 中移除，现代统一继承 BaseChatModel，实现 `_generate` 方法即可：
 ```python
-from langchain.llms.base import LLM
-from typing import Optional, List, Mapping, Any
+from typing import Any, List, Optional
+from langchain_core.callbacks import CallbackManagerForLLMRun
+from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import AIMessage, BaseMessage
+from langchain_core.outputs import ChatGeneration, ChatResult
 
-class CustomLLM(LLM):
-  n: int
-  
-  @property
-  def _llm_type(self) -> str:
-    return "custom"
-  
-  def _call(self, prompt: str, stop: Optional[List[str]] = None) -> str:
-    return prompt[:self.n]
-  
-  @property
-  def _identifying_params(self) -> Mapping[str, Any]:
-    return {"n": self.n}
+class CustomChatModel(BaseChatModel):
+    n: int = 10
 
-llm = CustomLLM(n=10)
+    @property
+    def _llm_type(self) -> str:
+        return "custom"
+
+    def _generate(
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[CallbackManagerForLLMRun] = None,
+        **kwargs: Any,
+    ) -> ChatResult:
+        text = str(messages[-1].content)[: self.n]
+        return ChatResult(
+            generations=[ChatGeneration(message=AIMessage(content=text))]
+        )
+
+    @property
+    def _identifying_params(self) -> dict:
+        return {"n": self.n}
+
+llm = CustomChatModel(n=10)
+llm.invoke("你好")
 ```
+实现后即自动获得 Runnable 接口（invoke / stream / batch），可直接接入 LCEL 管道。
 
 ### 2.14 如何在 LangChain 中实现一个具有长期记忆的agent?
 
-可以使用 VectorStore来实现长期记忆：
+现代做法用 LangGraph 的持久化能力实现记忆，分两层：
+- checkpointer（会话内记忆）：按 thread_id 保存对话状态，多轮对话自动携带历史；
+- Store（跨会话长期记忆）：跨 thread 记住用户偏好等长期信息。
 ```python
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
-from langchain.text_splitter import CharacterTextSplitter
-from langchain.llms import OpenAI
-from langchain.chains import ConversationalRetrievalChain
+from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.prebuilt import create_react_agent
 
-embeddings = OpenAIEmbeddings()
-texts = CharacterTextSplitter().split_text(long_text)
-vectorstore = Chroma.from_texts(texts, embeddings)
+checkpointer = MemorySaver()  # 生产环境换 PostgresSaver 等持久化后端
+llm = ChatOpenAI(model="gpt-4o", temperature=0)
+agent = create_react_agent(llm, tools=[], checkpointer=checkpointer)
 
-qa = ConversationalRetrievalChain.from_llm(OpenAI(temperature=0),
-vectorstore.as_retriever())
+# 第一轮：让它记住信息
+agent.invoke(
+    {"messages": [("user", "我叫小明，我喜欢喝拿铁，请记住")]},
+    config={"configurable": {"thread_id": "user-123"}},
+)
+# 第二轮：同一 thread_id 自动带上历史
+result = agent.invoke(
+    {"messages": [("user", "我喜欢喝什么？")]},
+    config={"configurable": {"thread_id": "user-123"}},
+)
+print(result["messages"][-1].content)  # 拿铁
 ```
-
-### 2.15 如何在 LangChain 中实现一个能够处理时间序列数据的agent?
-
-可以创建专门的时间序列分析工具 , 并将其集成到 agent 中。例如 , 可以使用 pandas 或 prophet库创建预测工具。
+若长期记忆规模较大（如个人知识库），可再结合向量库做检索式记忆：把历史对话写入向量库，检索出相关片段后注入提示词。
 
 ### 2.16 详细解释 LangChain 中的"提示注入"(Prompt Injection)安全问题 ,以及如何防范这种攻击。
 
@@ -426,38 +334,31 @@ safe_input = sanitize_input(user_input)
 
 ### 2.17 什么是 LangChain 中的"输出解析器"(Output Parsers)?给出一个使用结构化输出解析器的例子。
 
-输出解析器用于将语言模型的原始文本输出转换为结构化数据。例如：
+输出解析器用于将模型的原始输出转换为结构化数据（如 JSON / Pydantic 对象）。现代首选 `with_structured_output`：借助模型的 tool calling / 结构化输出能力直接生成符合 schema 的结果，不再靠正则解析文本：
 ```python
-from langchain.output_parsers import StructuredOutputParser, ResponseSchema
-from langchain.prompts import PromptTemplate
-from langchain.llms import OpenAI
+from pydantic import BaseModel
+from langchain_openai import ChatOpenAI
 
-response_schemas = [
-  ResponseSchema(name="name", description="The name of the person"),
-  ResponseSchema(name="age", description="The age of the person"),
-  ResponseSchema(name="occupation", description="The person's job")
-]
+class Person(BaseModel):
+    name: str
+    age: int
+    occupation: str
 
-parser = StructuredOutputParser.from_response_schemas(response_schemas)
+llm = ChatOpenAI(model="gpt-4o", temperature=0)
+structured_llm = llm.with_structured_output(Person)
 
-prompt = PromptTemplate(
-  template="Provide information about a person.
-{format_instructions}\n{query}",
-  input_variables=["query"],
-  partial_variables={"format_instructions": parser.get_format_instructions()}
-)
-
-llm = OpenAI(temperature=0)
-_input = prompt.format(query="Tell me about John Doe")
-output = llm(_input)
-parsed = parser.parse(output)
+person = structured_llm.invoke("介绍一下 John Doe 的基本信息")
+print(person.name, person.age, person.occupation)
 ```
+返回值直接是 Person 实例。传统解析器类（StructuredOutputParser、PydanticOutputParser 等）仍保留在 langchain_core 中，主要用于不支持 tool calling 的模型——通过在提示词里嵌入 JSON schema 再解析模型文本来实现。
 
 ## 03. RAG&向量数据库相关
 
 ### 3.1 RAG 技术体系的总体思路是怎样的？
 
 数据预处理->分块（这一步骤很关键，有时候也决定了模型的效果）->文本向量化->query 向量化->向量检索->重排->query+ 检索内容输入 LLM->输出。
+
+现代演进：重排序普遍改用交叉编码器（bge-reranker 等）；针对全局性 / 多跳问题出现了 GraphRAG（先建知识图谱再检索）；Agentic RAG 则让 agent 自主决定检索什么、何时检索、检索结果是否够用。
 
 ### 3.2 使用外挂知识库主要为了解决什么问题？
 
@@ -468,13 +369,14 @@ parsed = parser.parse(output)
 
 ### 3.3 如何评估 RAG项目效果的好坏
 
-针对检索环节的评估：
-- MMR 平均倒排率：查询（或推荐请求）的排名倒数
-- Hits Rate 命中率：前 k项中，包含正确信息的项的数目占比
-- NDCG：归一化折损累计增益
+针对检索环节的评估（沿用信息检索指标）：
+- 命中率 Hit Rate / Recall@k：前 k 条结果中包含正确信息的比例
+- MRR（平均倒数排名）：正确文档排名倒数的均值（注意不是 MMR——MMR 是最大化边际相关性，属于多样性重排策略）
+- NDCG：归一化折损累计增益，同时考虑相关性和排名位置
 针对生成环节的评估：
-- 非量化：完整性、正确性、相关性
-- 量化：Rouge-L
+- 专用评估框架 RAGAS 已成为事实标准，核心指标：Faithfulness（忠实度，答案是否忠于检索内容）、Answer Relevancy（答案相关性）、Context Precision / Context Recall（上下文精确率 / 召回率）
+- 量化指标：Rouge-L、BERTScore 等
+- LLM-as-a-Judge：用强模型按维度打分，弥补人工评估成本高、不可扩展的问题
 
 ### 3.4 你能解释 RAG与传统语言模型之间的基本区别吗？
 
@@ -512,9 +414,10 @@ RAG通过整合外部知识源与生成能力，有潜力提高医疗聊天机�
 
 ### 3.10 RAG 与参数高效微调（PEFT）有何不同？
 
-RAG 和参数高效微调（PEFT）是自然语言处理中的两种不同方法。
-- RAG（检索增强生成）：它通过将生成模型与基于检索的技术相结合来改进自然语言处理问题。使用检索组件，它从数据集或文档集合中获取相关数据，然后将其应用于生成模型以产生回复。
-- PEFT（参数高效微调）：PEFT旨在通过优化和微调预训练的语言模型来减少所需的计算资源和参数，以提高它们在特定任务上的性能。信息蒸馏、剪枝和量化等策略旨在以更少的参数实现相当或更优的性能。
+二者是增强大模型的两种不同思路：
+- RAG（检索增强生成）：不改变模型参数，生成前先从外部知识库检索相关内容注入上下文。知识可实时更新、来源可追溯，适合知识频繁变化的场景。
+- PEFT（参数高效微调）：冻结预训练模型的绝大部分参数，只训练少量新增参数，把领域知识或能力"写进"权重。代表方法：LoRA / QLoRA（低秩适配器）、Prefix Tuning、P-Tuning、Adapter 等。（注意：蒸馏、剪枝、量化属于模型压缩技术，不算 PEFT）
+二者并不互斥：常见组合是先用 PEFT 微调模型风格与领域能力，再用 RAG 补充时效性知识。
 
 ### 3.11 你能解释 RAG系统的技术架构吗？
 
@@ -529,7 +432,8 @@ RAG系统的技术架构通常由两个主要组件组成：
 
 ### 3.13 知识图在 RAG中扮演什么角色？
 
-知识图在 RAG中扮演着关键角色。它们通过提供有组织的知识表示和事物之间的联系，促进了更准确和高效的信息检索和推理。知识图可以包含在 RAG的检索组件中，通过使用图结构来遍历和检索信息，从而提高搜索能力。使用知识图，RAG可以记录和使用概念和事物之间的语义联系。从而使用户查询的答案更加丰富和细致。
+知识图在 RAG中扮演着关键角色。它们通过提供有组织的知识表示和事物之间的联系，促进了更准确和高效的信息检索和推理。知识图可以包含在 RAG的检索组件中，通过使用图结构来遍历和检索信息，从而提高搜索能力。使用知识图，RAG可以记录和使用概念和事物之间的语义联系，从而使用户查询的答案更加丰富和细致。
+微软提出的 GraphRAG 是这一思路的代表：先用 LLM 从语料中抽取实体与关系构建知识图谱、再生成社区层级摘要，检索时结合图结构与摘要作答，在全局性、多跳类问题上明显优于纯向量检索。
 
 ### 3.14 基于 LLM+向量库的文档对话核心技术是什么？
 
@@ -567,11 +471,12 @@ RAG系统的技术架构通常由两个主要组件组成：
 ### 3.19 embedding 模型在表示 text chunks时偏差太大问题
 
 问题描述：
-- 一些开源的 embedding 模型本身效果一般，尤其是当 text chunk很大的时候，强行变成一个简单的vector 是很难准确表示的，开源的模型在效果上确实不如 openai Embeddings；
-- 多语言问题，paper 的内容是英文的，用户的 query和生成的内容都是中文的，这里有个语言之间的对齐问题，尤其是可以用中文的 query embedding 来从英文的 text chunking embedding中找到更加相似的 top-k是个具有挑战的问题
+- text chunk 很大时，强行压缩成一个向量很难准确表示，检索质量下降；
+- 多语言问题：语料是英文而 query 是中文（或反之），跨语言检索的向量对齐是挑战。
 解决方法：
-- 用更小的 text chunk 配合更大的 topk 来提升表现，毕竟 smaller text chunk 用 embedding表示起来 noise 更小，更大的 topk 可以组合更丰富的 context来生成质量更高的回答；
-- 多语言的问题，可以找一些更加适合多语言的 embedding模型；
+- 用更小的 text chunk 配合更大的 top-k：更小的片段 embedding 噪声更小，更大的 top-k 能组合出更丰富的上下文；
+- 选多语言 / 长文本 embedding 模型：开源已不弱于 OpenAI——BGE-M3 原生支持 100+ 语言、8192 token 长文本，Qwen3-Embedding 等新模型在 MTEB 多语言榜单上已反超 text-embedding-3 系列，跨语言检索建议直接选这类模型；
+- 中英文混合语料，也可在入库前统一语言（翻译）后再做向量化。
 
 ## 04. 相似性函数相关
 
@@ -598,7 +503,7 @@ RAG系统的技术架构通常由两个主要组件组成：
 思维链 (CoT) 提示过程是一种提示方法，它鼓励大语言模型解释其推理过程。下图显示了few shot standard prompt（左)与链式思维提示过程（右）的比较。
 ![Standard Prompting 与 Chain-of-Thought Prompting 对比](assets/cot-standard-vs-cot-prompting.png)
 
-思维链的主要思想是通过向大语言模型展示一些少量的 exemplars，在样例中解释推理过程，大语言模型在回答提示时也会显示推理过程。这种推理的解释往往会引导出更准确的结果，目前市面上的深度思考LLM 基本就是 Cot 扩展得到的，例如：o1/o2/o3、deepseek-r1、Kimi长思考等。
+思维链的主要思想是通过向大语言模型展示一些少量的 exemplars，在样例中解释推理过程，大语言模型在回答提示时也会显示推理过程。这种推理的解释往往会引导出更准确的结果，目前市面上的深度思考LLM 基本就是 Cot 扩展得到的，例如：OpenAI o1/o3/o4 系列、DeepSeek-R1、Kimi 长思考等。
 
 ### 1.2 思维链提示的本质是什么？
 
@@ -632,13 +537,12 @@ RAG系统的技术架构通常由两个主要组件组成：
 
 ### 1.6 你认为目前思维链提示还有哪些不足的地方？
 
-该面试题主要探讨“思路链提示”方法的局限性和给后续研究带来的改进方向：
-1. 生成的思路链不一定事实准确，需要进一步改进提高事实性。
-2. 思路链提示的成功依赖于较大规模的语言模型，使用成本较高。
-3. 思路链的标注成本较高，不易大规模应用。可以考虑自动生成思路链。
-4. 思路链的提示示例易受提示工程影响，结果变化大。可以探索更稳健的提示方法。
-5. 思路链并不能完全反映模型的计算过程，理解内在机制需要更深入研究。
-6. 思路链提示在一些简单任务上的效果提升有限，可以扩展应用范围。
+该面试题主要探讨"思路链提示"方法的局限性（结合推理模型时代的现状）：
+1. 生成的思路链不一定事实准确，幻觉仍会出现，关键场景需要结果校验。
+2. 早期 CoT 依赖大规模模型 few-shot 示例、人工标注成本高——如今推理模型（o1、DeepSeek-R1）已通过大规模强化学习直接训练"长思考"过程，不再依赖人工标注示例，还能蒸馏到 7B 级小模型，使用成本大幅下降。
+3. 思维链暴露在输出中，存在被提示注入诱导、以及"思考过程钻奖励空子"（reward hacking）等新风险，需要独立的安全审查。
+4. 思路链并不能完全反映模型的内部计算过程，可解释性有限，理解内在机制仍需深入研究。
+5. 长思维链消耗大量推理 token，简单任务上反而又慢又贵，需要按任务难度动态决定"想多久"。
 后续研究可以在提高思路链质量、拓展适用范围、理解内在机制等方面开展，以推动这一新范式的发展。
 
 ### 1.7 如何通过增加模型规模来获得语言模型强大的思路链推理能力的?这与模型获得的哪些能力有关?
